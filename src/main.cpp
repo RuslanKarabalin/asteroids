@@ -1,5 +1,4 @@
 #include <raylib.h>
-#include <cstdlib>
 #include <entt.hpp>
 #include <random>
 
@@ -31,6 +30,13 @@ struct Shooter {
     float interval;
     float bulletSpeed;
 };
+
+static bool CircleHit(const Vector2& a, float ra, const Vector2& b, float rb) {
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    float r = ra + rb;
+    return (dx * dx + dy * dy) <= (r * r);
+}
 
 static void SpawnBullet(entt::registry& world, Vector2 pos, float speed) {
     auto b = world.create();
@@ -143,6 +149,57 @@ static void AsteroidSpawnSystem(entt::registry& world, float dt, int width, int 
     }
 }
 
+static void CollisionSystem(entt::registry& world, entt::entity player, int& score, bool& gameOver) {
+    std::vector<entt::entity> killBullets;
+    std::vector<entt::entity> killAsteroids;
+
+    auto bullets = world.view<BulletTag, Position, RenderableCircle>();
+    auto asteroids = world.view<AsteroidTag, Position, RenderableCircle>();
+
+    for (auto b : bullets) {
+        const auto& bp = bullets.get<Position>(b).vec2;
+        float br = bullets.get<RenderableCircle>(b).radius;
+
+        for (auto a : asteroids) {
+            const auto& ap = asteroids.get<Position>(a).vec2;
+            float ar = asteroids.get<RenderableCircle>(a).radius;
+
+            if (CircleHit(bp, br, ap, ar)) {
+                killBullets.push_back(b);
+                killAsteroids.push_back(a);
+                score += 10;
+                break;
+            }
+        }
+    }
+
+    if (world.valid(player) && world.all_of<Position, RenderableCircle>(player)) {
+        const auto& pp = world.get<Position>(player).vec2;
+        float pr = world.get<RenderableCircle>(player).radius;
+
+        for (auto a : asteroids) {
+            const auto& ap = asteroids.get<Position>(a).vec2;
+            float ar = asteroids.get<RenderableCircle>(a).radius;
+
+            if (CircleHit(pp, pr, ap, ar)) {
+                gameOver = true;
+                break;
+            }
+        }
+    }
+
+    for (auto e : killBullets) {
+        if (world.valid(e)) {
+            world.destroy(e);
+        }
+    }
+    for (auto e : killAsteroids) {
+        if (world.valid(e)) {
+            world.destroy(e);
+        }
+    }
+}
+
 int main() {
     const int TARGET_FPS = 120;
     int screenWidth = 1600, screenHeight = 900;
@@ -161,6 +218,8 @@ int main() {
     world.emplace<RenderableCircle>(player, 32, BLACK);
     world.emplace<Shooter>(player, 0.0f, TARGET_FPS / 500.0f, 1000.0f);
 
+    int score = 0;
+    bool gameOver = false;
     while (!WindowShouldClose()) {
         if (IsWindowResized() && !IsWindowFullscreen()) {
             screenWidth = GetScreenWidth();
@@ -171,31 +230,50 @@ int main() {
 
         BeginDrawing();
         ClearBackground(DARKBLUE);
+        if (gameOver) {
+            DrawText("GAME OVER", screenWidth / 2 - 100, screenHeight / 2, 32, RED);
+            DrawText("Press 'R' to restart", screenWidth / 2 - 200, screenHeight / 2 + 100, 32, BLACK);
+            if (IsKeyDown(KEY_R)) {
+                score = 0;
+                for (auto e : world.view<entt::entity>()) {
+                    if (e != player) {
+                        world.destroy(e);
+                    } else {
+                        auto& pos = world.get<Position>(e).vec2;
+                        pos.x = playerX;
+                        pos.y = playerY;
+                    }
+                }
+                gameOver = false;
+            }
+        } else {
+            auto& vel = world.get<Velocity>(player);
+            if (IsKeyDown(KEY_W)) {
+                vel.vec2.y = -700.0f;
+            }
+            if (IsKeyDown(KEY_A)) {
+                vel.vec2.x = -700.0f;
+            }
+            if (IsKeyDown(KEY_S)) {
+                vel.vec2.y = 700.0f;
+            }
+            if (IsKeyDown(KEY_D)) {
+                vel.vec2.x = 700.0f;
+            }
+            AsteroidSpawnSystem(world, dt, screenWidth, screenHeight);
+            ShootingSystem(world, dt);
+            MovementSystem(world, dt);
+            ClampPlayerToScreen(world, screenWidth, screenHeight);
+            LifetimeSystem(world, dt);
+            CollisionSystem(world, player, score, gameOver);
 
-        auto& vel = world.get<Velocity>(player);
-        if (IsKeyDown(KEY_W)) {
-            vel.vec2.y = -700.0f;
-        }
-        if (IsKeyDown(KEY_A)) {
-            vel.vec2.x = -700.0f;
-        }
-        if (IsKeyDown(KEY_S)) {
-            vel.vec2.y = 700.0f;
-        }
-        if (IsKeyDown(KEY_D)) {
-            vel.vec2.x = 700.0f;
-        }
-        AsteroidSpawnSystem(world, dt, screenWidth, screenHeight);
-        ShootingSystem(world, dt);
-        MovementSystem(world, dt);
-        ClampPlayerToScreen(world, screenWidth, screenHeight);
-        LifetimeSystem(world, dt);
+            auto rederableCircles = world.view<Position, RenderableCircle>();
+            for (auto [entity, pos, cc] : rederableCircles.each()) {
+                DrawCircle(pos.vec2.x, pos.vec2.y, cc.radius, cc.color);
+            }
 
-        auto rederableCircles = world.view<Position, RenderableCircle>();
-        for (auto [entity, pos, cc] : rederableCircles.each()) {
-            DrawCircle(pos.vec2.x, pos.vec2.y, cc.radius, cc.color);
+            DrawText(TextFormat("Score: %d", score), 20, 20, 20, RAYWHITE);
         }
-
         EndDrawing();
     }
 
