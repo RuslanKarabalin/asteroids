@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <entt.hpp>
+#include <format>
 #include <random>
 
 struct PlayerTag {};
@@ -200,6 +201,18 @@ static void CollisionSystem(entt::registry& world, entt::entity player, int& sco
     }
 }
 
+static void ResetGame(entt::registry& world, entt::entity& player, Vector2 playerPos, int& score) {
+    score = 0;
+    world.clear();
+
+    player = world.create();
+    world.emplace<PlayerTag>(player);
+    world.emplace<Position>(player, playerPos);
+    world.emplace<Velocity>(player, Vector2{0, 0});
+    world.emplace<RenderableCircle>(player, 32, BLACK);
+    world.emplace<Shooter>(player, 0.0f, 0.12f, 1000.0f);
+}
+
 int main() {
     const int TARGET_FPS = 120;
     int screenWidth = 1600, screenHeight = 900;
@@ -231,19 +244,13 @@ int main() {
         BeginDrawing();
         ClearBackground(DARKBLUE);
         if (gameOver) {
-            DrawText("GAME OVER", screenWidth / 2 - 100, screenHeight / 2, 32, RED);
-            DrawText("Press 'R' to restart", screenWidth / 2 - 200, screenHeight / 2 + 100, 32, BLACK);
+            int hsw = screenWidth / 2;
+            int hsh = screenHeight / 2;
+            DrawText("GAME OVER", hsw - 150, hsh - 50, 32, RED);
+            DrawText(std::format("Final score: {}", score).c_str(), hsw - 150, hsh, 32, GOLD);
+            DrawText("Press 'R' to restart", hsw - 200, hsh + 50, 32, BLACK);
             if (IsKeyDown(KEY_R)) {
-                score = 0;
-                for (auto e : world.view<entt::entity>()) {
-                    if (e != player) {
-                        world.destroy(e);
-                    } else {
-                        auto& pos = world.get<Position>(e).vec2;
-                        pos.x = playerX;
-                        pos.y = playerY;
-                    }
-                }
+                ResetGame(world, player, Vector2{playerX, playerY}, score);
                 gameOver = false;
             }
         } else {
@@ -272,7 +279,7 @@ int main() {
                 DrawCircle(pos.vec2.x, pos.vec2.y, cc.radius, cc.color);
             }
 
-            DrawText(TextFormat("Score: %d", score), 20, 20, 20, RAYWHITE);
+            DrawText(TextFormat("Score: %d", score), 20, 20, 32, RAYWHITE);
         }
         EndDrawing();
     }
