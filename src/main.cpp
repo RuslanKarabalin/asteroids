@@ -1,6 +1,5 @@
 #include <raylib.h>
 #include <entt.hpp>
-#include <format>
 #include <random>
 
 struct PlayerTag {};
@@ -247,7 +246,6 @@ int main() {
             int hsw = screenWidth / 2;
             int hsh = screenHeight / 2;
             DrawText("GAME OVER", hsw - 150, hsh - 50, 32, RED);
-            DrawText(std::format("Final score: {}", score).c_str(), hsw - 150, hsh, 32, GOLD);
             DrawText("Press 'R' to restart", hsw - 200, hsh + 50, 32, BLACK);
             if (IsKeyDown(KEY_R)) {
                 ResetGame(world, player, Vector2{playerX, playerY}, score);

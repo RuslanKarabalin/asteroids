@@ -3,6 +3,7 @@ compile_commands.json
 
 # Build directory
 build/
+build_web/
 
 # Prerequisites
 *.d
