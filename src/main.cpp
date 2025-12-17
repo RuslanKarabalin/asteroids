@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <entt.hpp>
+#include <format>
 #include <random>
 
 struct PlayerTag {};
@@ -7,6 +8,8 @@ struct PlayerTag {};
 struct BulletTag {};
 
 struct AsteroidTag {};
+
+struct BoostTag {};
 
 struct Position {
     Vector2 vec2;
@@ -53,6 +56,15 @@ static void SpawnAsteroid(entt::registry& world, Vector2 pos, float speed, int s
     world.emplace<Position>(a, pos);
     world.emplace<Velocity>(a, Vector2{0.0f, speed});
     world.emplace<RenderableCircle>(a, size, DARKBROWN);
+    world.emplace<Lifetime>(a, lifetime);
+}
+
+static void SpawnBoost(entt::registry& world, Vector2 pos, float speed, float lifetime) {
+    auto a = world.create();
+    world.emplace<BoostTag>(a);
+    world.emplace<Position>(a, pos);
+    world.emplace<Velocity>(a, Vector2{0.0f, speed});
+    world.emplace<RenderableCircle>(a, 16, PURPLE);
     world.emplace<Lifetime>(a, lifetime);
 }
 
@@ -146,6 +158,21 @@ static void AsteroidSpawnSystem(entt::registry& world, float dt, int width, int 
         int x = distX(rng);
         float size = distSize(rng);
         SpawnAsteroid(world, Vector2{(float)x, -(size + 1)}, 10 * size, size, height / size);
+    }
+}
+
+static void BoostSpawnSystem(entt::registry& world, float dt, int width, int height) {
+    static float timer = 0.0f;
+    const float interval = 2.0f;
+
+    timer -= dt;
+
+    if (timer < 0.0f) {
+        timer += interval;
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<std::mt19937::result_type> distX(0, width);
+        int x = distX(rng);
+        SpawnBoost(world, Vector2{(float)x, -17}, 400, height / 40);
     }
 }
 
@@ -246,6 +273,7 @@ int main() {
             int hsw = screenWidth / 2;
             int hsh = screenHeight / 2;
             DrawText("GAME OVER", hsw - 150, hsh - 50, 32, RED);
+            DrawText(std::format("Final score: {}", score).c_str(), hsw - 200, hsh, 32, GOLD);
             DrawText("Press 'R' to restart", hsw - 200, hsh + 50, 32, BLACK);
             if (IsKeyDown(KEY_R)) {
                 ResetGame(world, player, Vector2{playerX, playerY}, score);
@@ -266,6 +294,7 @@ int main() {
                 vel.vec2.x = 700.0f;
             }
             AsteroidSpawnSystem(world, dt, screenWidth, screenHeight);
+            BoostSpawnSystem(world, dt, screenWidth, screenHeight);
             ShootingSystem(world, dt);
             MovementSystem(world, dt);
             ClampPlayerToScreen(world, screenWidth, screenHeight);
