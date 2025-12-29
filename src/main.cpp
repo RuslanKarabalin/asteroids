@@ -257,6 +257,10 @@ int main() {
     world.emplace<RenderableCircle>(player, 32, BLACK);
     world.emplace<Shooter>(player, 0.0f, TARGET_FPS / 500.0f, 1000.0f);
 
+    Image image = LoadImage("assets/spaceship.png");
+    Texture2D texture = LoadTextureFromImage(image);
+    UnloadImage(image);
+
     int score = 0;
     bool gameOver = false;
     while (!WindowShouldClose()) {
@@ -293,6 +297,7 @@ int main() {
             if (IsKeyDown(KEY_D)) {
                 vel.vec2.x = 700.0f;
             }
+	    DrawTexture(texture, texture.width/2, texture.height/2, WHITE);
             AsteroidSpawnSystem(world, dt, screenWidth, screenHeight);
             BoostSpawnSystem(world, dt, screenWidth, screenHeight);
             ShootingSystem(world, dt);
@@ -311,6 +316,7 @@ int main() {
         EndDrawing();
     }
 
+    UnloadTexture(texture);
     CloseWindow();
     return 0;
 }

@@ -18,7 +18,7 @@ SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OUTPUT = $(BUILD_DIR)/$(project).js
 
 # Compiler flags
-CFLAGS = -std=c++23 -Wall -Wextra -Wpedantic -Werror -Wno-error=missing-field-initializers
+CFLAGS = -std=c++23 -Wall -Wextra -Wpedantic -Werror -Wno-error=missing-field-initializers --preload-file assets
 CFLAGS += -I$(INCLUDE_DIR) -I$(RAYLIB_INCLUDE) -I$(ENTT_INCLUDE)
 
 # Emscripten flags
