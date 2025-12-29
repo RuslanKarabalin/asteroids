@@ -68,7 +68,7 @@ build: $(SOURCES)
 	@echo '</html>' >> $(BUILD_DIR)/index.html
 
 run:
-	emrun --browser=chrome $(BUILD_DIR)/index.html
+	emrun --no_browser $(BUILD_DIR)/index.html
 
 clean:
 	rm -rf $(BUILD_DIR)
