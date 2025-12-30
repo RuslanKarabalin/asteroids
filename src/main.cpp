@@ -3,13 +3,10 @@
 #include <format>
 #include <random>
 
-struct PlayerTag {};
-
-struct BulletTag {};
-
-struct AsteroidTag {};
-
-struct BoostTag {};
+#include "components/PlayerTag.h"
+#include "components/AsteroidTag.h"
+#include "components/BoostTag.h"
+#include "components/BulletTag.h"
 
 struct Position {
     Vector2 vec2;
